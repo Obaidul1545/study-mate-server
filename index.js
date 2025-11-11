@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -29,20 +29,37 @@ async function run() {
     const db = client.db('studyMate');
     const partnersCollection = db.collection('partners');
 
+    // create partners
     app.post('/partners', async (req, res) => {
       const newPartner = req.body;
-      if (!partner.rating) {
-        partner.rating = parseFloat((Math.random() * (5 - 1) + 1).toFixed(1));
-      }
-      if (!partner.partnerCount) {
-        partner.partnerCount = 0;
-      }
       const result = await partnersCollection.insertOne(newPartner);
       res.send(result);
     });
 
+    // get All partners
     app.get('/partners', async (req, res) => {
       const result = await partnersCollection.find().toArray();
+      res.send(result);
+    });
+
+    // partner details
+    app.get('/partner/:id', async (req, res) => {
+      const { id } = req.params;
+      const result = await partnersCollection
+        .findOne({
+          _id: new ObjectId(id),
+        })
+        .toArray();
+      res.send(result);
+    });
+
+    // top partners
+    app.get('/top-partners', async (req, res) => {
+      const result = await partnersCollection
+        .find()
+        .sort({ rating: -1 })
+        .limit(3)
+        .toArray();
       res.send(result);
     });
 
