@@ -28,11 +28,22 @@ async function run() {
 
     const db = client.db('studyMate');
     const partnersCollection = db.collection('partners');
+    const requestsCollection = db.collection('requests');
 
     // create partners
     app.post('/partners', async (req, res) => {
       const newPartner = req.body;
       const result = await partnersCollection.insertOne(newPartner);
+      res.send(result);
+    });
+
+    // top partners
+    app.get('/top-partners', async (req, res) => {
+      const result = await partnersCollection
+        .find()
+        .sort({ rating: -1 })
+        .limit(3)
+        .toArray();
       res.send(result);
     });
 
@@ -45,22 +56,45 @@ async function run() {
     // partner details
     app.get('/partner/:id', async (req, res) => {
       const { id } = req.params;
-      const result = await partnersCollection
-        .findOne({
-          _id: new ObjectId(id),
-        })
-        .toArray();
+      const query = { _id: new ObjectId(id) };
+      const result = await partnersCollection.findOne(query);
       res.send(result);
     });
 
-    // top partners
-    app.get('/top-partners', async (req, res) => {
-      const result = await partnersCollection
-        .find()
-        .sort({ rating: -1 })
-        .limit(3)
-        .toArray();
-      res.send(result);
+    //send partner request
+    app.post('/send-request/:id', async (req, res) => {
+      const { id } = req.params;
+      const { userEmail } = req.body;
+      const query = { _id: new ObjectId(id) };
+      const alreadySent = await requestsCollection.findOne({
+        partnerId: id,
+        senderEmail: userEmail,
+      });
+      if (alreadySent) {
+        return res.send({
+          success: false,
+          message: 'You already sent a request to this partner!',
+        });
+      }
+      await partnersCollection.updateOne(query, {
+        $inc: { partnerCount: 1 },
+      });
+      const partner = await partnersCollection.findOne(query);
+      const newRequest = {
+        partnerId: id,
+        partnerName: partner.name,
+        partnerEmail: partner.email,
+        partnerSubject: partner.subject,
+        partnerImage: partner.profileimage,
+        senderEmail: userEmail,
+        createdAt: new Date(),
+      };
+      const result = await requestsCollection.insertOne(newRequest);
+      res.send({
+        success: true,
+        message: 'Partner request sent successfully!',
+        result,
+      });
     });
 
     await client.db('admin').command({ ping: 1 });
