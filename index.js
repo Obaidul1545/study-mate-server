@@ -85,6 +85,7 @@ async function run() {
         partnerName: partner.name,
         partnerEmail: partner.email,
         partnerSubject: partner.subject,
+        partnerStudyMode: partner.studyMode,
         partnerImage: partner.profileimage,
         senderEmail: userEmail,
         createdAt: new Date(),
@@ -95,6 +96,22 @@ async function run() {
         message: 'Partner request sent successfully!',
         result,
       });
+    });
+
+    // get all request
+    app.get('/all-requests', async (req, res) => {
+      const { email } = req.query;
+      if (!email) {
+        return res.status(400).send({ message: 'Email is required' });
+      }
+      const requests = await requestsCollection
+        .find({ senderEmail: email })
+
+        .sort({
+          createdAt: -1,
+        })
+        .toArray();
+      res.send(requests);
     });
 
     await client.db('admin').command({ ping: 1 });
