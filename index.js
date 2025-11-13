@@ -86,6 +86,7 @@ async function run() {
         partnerEmail: partner.email,
         partnerSubject: partner.subject,
         partnerStudyMode: partner.studyMode,
+        availabilityTime: partner.availabilityTime,
         partnerImage: partner.profileimage,
         senderEmail: userEmail,
         createdAt: new Date(),
@@ -106,7 +107,6 @@ async function run() {
       }
       const requests = await requestsCollection
         .find({ senderEmail: email })
-
         .sort({
           createdAt: -1,
         })
@@ -127,9 +127,27 @@ async function run() {
       const id = req.params.id;
       const updatedData = req.body;
       const query = { _id: new ObjectId(id) };
-      const result = await requestsCollection.updateOne(query, {
-        $set: updatedData,
-      });
+      const updateData = {
+        $set: {
+          partnerSubject: updatedData.partnerSubject,
+          partnerStudyMode: updatedData.partnerStudyMode,
+          availabilityTime: updatedData.availabilityTime,
+        },
+      };
+
+      const result = await requestsCollection.updateOne(query, updateData);
+      res.send(result);
+    });
+
+    // search
+    app.get('/search', async (req, res) => {
+      const search_text = req.query.search;
+      const result = await partnersCollection
+        .find({
+          subject: { $regex: search_text, $options: 'i' },
+        })
+        .sort({ experienceLevel: -1 })
+        .toArray();
       res.send(result);
     });
 
