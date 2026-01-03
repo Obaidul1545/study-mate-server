@@ -30,6 +30,30 @@ async function run() {
     const db = client.db('studyMate');
     const partnersCollection = db.collection('partners');
     const requestsCollection = db.collection('requests');
+    const usersCollection = db.collection('users');
+
+    // users releted apis
+    app.post('/users', async (req, res) => {
+      const user = req.body;
+      user.accountStatus = 'pending';
+      user.createdAt = new Date();
+      const email = user.email;
+      const userExists = await usersCollection.findOne({ email });
+      if (userExists) {
+        return res.send({ message: 'Already user Exists' });
+      }
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+
+    app.get('/users', async (req, res) => {
+      const email = req.query.email;
+      if (!email) {
+        return res.status(400).send({ error: 'Email missing' });
+      }
+      const result = await usersCollection.findOne({ email });
+      res.send(result);
+    });
 
     // create partners
     app.post('/partners', async (req, res) => {
